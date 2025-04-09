@@ -1,0 +1,53 @@
+@using Assignment1.Areas.ProductManagement.Models
+@model Assignment1.Areas.ProductManagement.Models.Order
+@{
+    ViewBag.Title = "Order Summary";
+    var products = (List<Product>)ViewBag.Products;
+}
+
+<h2>Orders Summary</h2>
+
+<div>
+    <strong>Order ID:</strong> @Model.OrderId
+</div>
+<div>
+    <strong>Order Date:</strong> @Model.OrderDate
+</div>
+<div>
+    <strong>Customer Name:</strong> @Model.CustomerName
+</div>
+<div>
+
+    <strong>Customer Email:</strong> @Model.CustomerEmail
+</div>
+
+<h3>Order Items</h3>
+
+<table class="table">
+    <tr>
+        <th>Product</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Subtotal</th>
+    </tr>
+
+    @for (int i = 0; i < Model.ProductIds.Length; i++)
+    {
+        var product = products.FirstOrDefault(p => p.ProductId == Model.ProductIds[i]);
+        if (product != null)
+        {
+            <tr>
+                <td>@product.Name</td>
+                <td>@Model.Quantities[i]</td>
+                <td>@product.Price</td>
+                <td>@(product.Price * Model.Quantities[i])</td>
+            </tr>
+        }
+    }
+</table>
+
+<div>
+    <strong>Total Price:</strong> @Model.TotalPrice(products)
+</div>
+
+<a asp-action="Create" class="btn btn-primary">Place Another Order</a>

@@ -1,0 +1,76 @@
+@using Assignment1.Areas.ProductManagement.Models
+@model Assignment1.Areas.ProductManagement.Models.Order
+
+@{
+    ViewBag.Title = "Place Order";
+    var products = (List<Product>)ViewBag.Products;
+    Layout = "_Layout";
+}
+
+<h2>Place an Order</h2>
+
+<!-- display error messages if validation fails -->
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}
+
+<form asp-action="Create" method="post">
+    
+    <div class="form-group">
+        <label asp-for="CustomerName" class="control-label">Customer Name</label>
+        <input asp-for="CustomerName" class="form-control"/>
+        <span asp-validation-for="CustomerName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="CustomerEmail" class="control-label">Customer Email</label>
+        <input asp-for="CustomerEmail" class="form-control"/>
+        <span asp-validation-for="CustomerEmail" class="text-danger"></span>
+    </div>
+
+    <!-- product selection -->
+    <h3>Select Products</h3>
+    <div id="orderItems" class="form-group">
+        <div class="orderItem">
+            <label class="control-label">Product:</label>
+            <select name="productIds" class="form-control">
+                @foreach (var prod in products)
+                {
+                    <option value="@prod.ProductId">@prod.Name (@prod.Price)</option>
+                }
+            </select>
+            <label class="control-label">Quantity:</label>
+            <input type="number" name="quantities" class="form-control" min="1"/>
+        </div>
+    </div>
+
+    <br/>
+    <button type="button" class="btn btn-primary" onclick="addOrderItem()">Add Another Product</button>
+    <br/><br/>
+    <button type="submit" class="btn btn-primary">Place Order</button>
+</form>
+
+@section Scripts {
+    <script>
+        function addOrderItem() {
+            let div = document.createElement("div");
+            div.className = "orderItem";
+            div.innerHTML = `<label>Product:</label>
+                <select name="productIds">
+                    @foreach (var prod in products)
+                    {
+                        <option value="@prod.ProductId">@prod.Name (@prod.Price)</option>
+                    }
+                </select>
+                <label>Quantity:</label>
+                <input type="number" name="quantities" value="1" min="1" />`;
+            document.getElementById("orderItems").appendChild(div);
+        }
+    </script>
+}

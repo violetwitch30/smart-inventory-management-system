@@ -1,0 +1,45 @@
+@model Assignment1.Areas.ProductManagement.Models.Product
+
+@{
+    ViewBag.Title = "Inventory Summary";
+    Layout = "_Layout";
+}
+
+<h2>Inventory Summary</h2>
+
+<!-- Low Stock Warning -->
+@if (ViewBag.LowStockCount > 0)
+{
+    <div class="alert alert-warning">
+        ⚠️ Warning: There are low-stock products!
+    </div>
+}
+
+<!-- Summary Statistics -->
+<div class="card p-3">
+    <h3>Total Stock: <strong>@ViewBag.TotalStock</strong> items</h3>
+</div>
+
+<!-- Product Count Per Category -->
+<h3>Product Distribution by Category</h3>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Category</th>
+        <th>Number of Products</th>
+    </tr>
+    </thead>
+    
+    <tbody>
+    @foreach (var category in ViewBag.CategorySummary)
+    {
+        <tr>
+            <td>@category.CategoryName</td>
+            <td>@category.ProductCount</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<a asp-controller="Product" asp-action="Index" class="btn btn-primary">View Products</a>

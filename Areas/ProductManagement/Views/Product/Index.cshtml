@@ -1,0 +1,65 @@
+@model List<Assignment1.Areas.ProductManagement.Models.Product>
+
+@{
+    ViewBag.Title = "Products";
+    Layout = "_Layout";
+}
+
+<h2>Products</h2>
+
+<!-- alert if there are low-stock products -->
+@if (ViewBag.LowStockCount > 0)
+{
+    <div class="alert alert-warning">
+        ⚠️ Warning: There are low-stock products!
+    </div>
+}
+
+<a asp-action="Add" class="btn btn-primary">Add New Product</a>
+<a asp-action="Summary" class="btn btn-primary">Summary</a>
+<a asp-action="Search" class="btn btn-primary">Search the Products</a>
+
+@if (Model.Any())
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Quantity in Stock</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        
+        <tbody>
+        @foreach (var product in Model)
+        {
+            <tr class="@(product.Quantity < 10 ? "table-danger" : "")">
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.Category.Name</td>
+                <td>@product.Price</td>
+                <td>@product.Quantity</td>
+                <td>
+                    <a asp-action="Update" asp-route-id="@product.ProductId" class="btn btn-warning">Update</a>
+                    <a asp-action="Delete" asp-route-id="@product.ProductId" class="btn btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+else
+{
+    <p>No products available</p>
+}
+
+<!-- red colour for low-stock -->
+<style>
+    .table-danger {
+        background-color: darkred;
+    }
+</style>
