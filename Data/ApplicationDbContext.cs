@@ -1,9 +1,9 @@
-using Assignment1.Areas.ProductManagement.Models;
-using Assignment1.Models;
+using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
+using SmartInventoryManagementSystem.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Assignment1.Data;
+namespace SmartInventoryManagementSystem.Data;
 
 public class ApplicationDbContext : IdentityDbContext
 {
@@ -15,6 +15,8 @@ public class ApplicationDbContext : IdentityDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        
         // seed Categories table with example data
         modelBuilder.Entity<Category>().HasData(
             new Category { CategoryId = 1, Name = "Electronics" },

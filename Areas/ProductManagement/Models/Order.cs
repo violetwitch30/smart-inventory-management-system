@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Assignment1.Areas.ProductManagement.Models;
+namespace SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 
 public class Order
 {

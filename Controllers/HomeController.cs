@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Assignment1.Areas.ProductManagement.Models;
-using Assignment1.Models;
+using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
+using SmartInventoryManagementSystem.Models;
 
-namespace Assignment1.Controllers;
+namespace SmartInventoryManagementSystem.Controllers;
 
 public class HomeController : Controller
 {

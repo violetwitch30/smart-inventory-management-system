@@ -1,4 +1,4 @@
-namespace Assignment1.Models;
+namespace SmartInventoryManagementSystem.Models;
 
 public class ErrorViewModel
 {

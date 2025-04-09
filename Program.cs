@@ -1,4 +1,4 @@
-using Assignment1.Data;
+using SmartInventoryManagementSystem.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

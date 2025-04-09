@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Assignment1.Models;
+using SmartInventoryManagementSystem.Models;
 
-namespace Assignment1.Areas.ProductManagement.Models;
+namespace SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 
 public class Category
 {

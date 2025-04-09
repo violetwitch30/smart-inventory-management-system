@@ -1,10 +1,10 @@
-using Assignment1.Areas.ProductManagement.Models;
-using Assignment1.Data;
-using Assignment1.Models;
+using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
+using SmartInventoryManagementSystem.Data;
+using SmartInventoryManagementSystem.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Assignment1.Areas.ProductManagement.Controllers
+namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
     [Area("ProductManagement")]
     [Route("[area]/[controller]/[action]")]
