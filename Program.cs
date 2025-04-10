@@ -1,5 +1,6 @@
 using SmartInventoryManagementSystem.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,8 @@ builder.Services.AddControllersWithViews();
 // Configure connection string "DefaultConnection"
 builder.Services.AddDbContext<ApplicationDbContext>(options => 
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<ApplicationDbContext>();
 
 var app = builder.Build();
 
@@ -29,7 +32,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name:"areas",
-    pattern:"{area:exists}/{controller=Project}/{action=Index}/{id}");
+    pattern:"{area:exists}/{controller=Product}/{action=Index}/{id}");
 
 app.MapControllerRoute(
         name: "default",
