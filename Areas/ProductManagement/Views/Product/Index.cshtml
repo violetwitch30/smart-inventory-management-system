@@ -11,13 +11,6 @@
 
 <h2>Products</h2>
 
-<input type="text" id="searchBox" class="form-control mb-3" placeholder="🔎 Search for products by name..." />
-
-<div id="spinner" style="display:none; text-align:center; font-size: 40px;">
-    <i class="fa-solid fa-rotate fa-spin"></i>
-</div>
-
-<!-- alert if there are low-stock products -->
 @if (ViewBag.LowStockCount > 0)
 {
     <div class="alert alert-warning">
@@ -34,60 +27,12 @@
     <a asp-area="ProductManagement" asp-controller="Product" asp-action="Search" class="btn btn-primary">Search the Products</a>
 </div>
 
-<!-- @if (Model.Any())
-{
-    <table class="table">
-        <thead>
-        <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Quantity in Stock</th>
-            @if (User.IsInRole("Admin"))
-            {
-                <th>Action</th>
-            }
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var product in Model)
-        {
-            <tr class="@(product.Quantity < 10 ? "table-danger" : "")">
-                <td>@product.Name</td>
-                <td>@product.Description</td>
-                <td>@product.Category.Name</td>
-                <td>@product.Price</td>
-                <td>@product.Quantity</td>
-                @if (User.IsInRole("Admin"))
-                {
-                    <td>
-                        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Update" asp-route-id="@product.ProductId" class="btn btn-warning">Update</a>
-                        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Delete" asp-route-id="@product.ProductId" class="btn btn-danger">Delete</a>
-                    </td>
-                }
-            </tr>
-        }
-        </tbody>
-    </table>
-}
-else
-{
-    <p>No products available</p>
-} -->
-
 <div id="productsList">
     @await Html.PartialAsync("_ProductListPartial", Model)
 </div>
 
-<!-- red colour for low-stock -->
 <style>
     .table-danger {
         background-color: darkred;
     }
 </style>
-
-@section Scripts {
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- In case you didn't add jQuery yet -->
-    <script src="~/js/ProductAjax.js"></script>
-}

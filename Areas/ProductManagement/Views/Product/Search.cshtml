@@ -7,14 +7,12 @@
 
 <h2>Search Products</h2>
 
-<form method="get" asp-action="Search">
-    
+<form id="searchForm" method="get" asp-action="Search">
     <div class="form-group">
         <label class="control-label">Search</label>
-        <input type="text" name="searchString" class="form-control" placeholder="Search products..." value="@Context.Request.Query["searchString"]"/>
+        <input type="text" id="searchBox" name="searchString" class="form-control" placeholder="🔎 Search products..." value="@Context.Request.Query["searchString"]"/>
     </div>
 
-    <!-- category -->
     <div class="form-group">
         <label class="control-label">Category</label>
         <select name="categoryId" class="form-control">
@@ -28,7 +26,6 @@
         </select>
     </div>
 
-    <!-- price range -->
     <div class="form-group">
         <label class="control-label">Min Price</label>
         <input type="number" name="minPrice" class="form-control" value="@Context.Request.Query["minPrice"]"/>
@@ -39,7 +36,6 @@
         <input type="number" name="maxPrice" class="form-control" value="@Context.Request.Query["maxPrice"]"/>
     </div>
 
-    <!-- low stock -->
     <div class="form-group">
         <label class="control-label">
             <input type="checkbox" name="lowStockOnly" value="true" @(Context.Request.Query["lowStockOnly"] == "true" ? "checked" : "")/>
@@ -47,7 +43,6 @@
         </label>
     </div>
 
-    <!-- sorting -->
     <div class="form-group">
         <label class="control-label">Filter</label>
         <select name="sortOrder" class="form-control">
@@ -65,33 +60,42 @@
     <button type="submit" class="btn btn-secondary">Search</button>
 </form>
 
-<table class="table">
-    <thead>
-    <tr>
-        <th>Product Name</th>
-        <th>Description</th>
-        <th>Category</th>
-        <th>Price</th>
-        <th>Quantity</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var product in Model)
-    {
-        <tr class="@(product.Quantity < 10 ? "table-danger" : "")">
-            <td>@product.Name</td>
-            <td>@product.Description</td>
-            <td>@product.Category.Name</td>
-            <td>@product.Price</td>
-            <td>@product.Quantity</td>
-        </tr>
-    }
-    </tbody>
-</table>
+<div id="spinner" style="display:none; text-align:center; font-size: 40px;">
+    <i class="fa-solid fa-rotate fa-spin"></i>
+</div>
 
-<!-- low-stock red colour alert -->
+<div id="productsList">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Product Name</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Quantity</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var product in Model)
+        {
+            <tr class="@(product.Quantity < 10 ? "table-danger" : "")">
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.Category.Name</td>
+                <td>@product.Price</td>
+                <td>@product.Quantity</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
 <style>
     .table-danger {
         background-color: darkred;
     }
 </style>
+
+@section Scripts {
+    <script src="~/js/ProductAjax.js"></script>
+}

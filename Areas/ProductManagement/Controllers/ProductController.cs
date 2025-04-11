@@ -302,7 +302,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                 {
                     return PartialView("_ProductListPartial", products);
                 }
-                return View("Index", products); // Reuses the Index view with filtered results
+                return View("Search", products); // Reuses the Index view with filtered results
             }
             catch (Exception ex)
             {
