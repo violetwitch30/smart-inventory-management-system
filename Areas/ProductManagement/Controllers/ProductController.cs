@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
     [Area("ProductManagement")]
-    [Route("[area]/[controller]/[action]")]
-    [Authorize]
+    [Route("[area]/[controller]")]
+    //[Authorize]
     public class ProductController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -95,7 +95,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [HttpPost("Update/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Update(int id,
-            [Bind("ProductId, Name, CategoryId, Price, Quantity, LowStockThreshold")] Product product)
+                [Bind("ProductId, Name, Description, CategoryId, Price, Quantity, LowStockThreshold")] Product product)
         {
             // Check for route and model ID match.
             if (id != product.ProductId)
@@ -164,7 +164,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         }
 
         [HttpGet("Delete/{id}")]
-        [Authorize(Roles = "SuperAdmin, Admin")]
+        //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
@@ -179,7 +179,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         
         [HttpPost("Delete/{id}"), ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin, Admin")]
+        //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             _logger.LogInformation("DeleteConfirmed called for Product ID {id}", id);

@@ -8,7 +8,7 @@
 
 <h2>Edit Product</h2>
 
-<form asp-action="Update" method="post">
+<form asp-action="Update" asp-route-id="@Model.ProductId" method="post">
     @Html.HiddenFor(model => model.ProductId)
 
     <div class="form-group">

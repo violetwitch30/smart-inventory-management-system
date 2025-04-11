@@ -11,8 +11,8 @@ using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
     [Area("ProductManagement")]
-    [Route("[area]/[controller]/[action]")]
-    [Authorize]
+    [Route("[area]/[controller]")]
+    //[Authorize]
     public class OrderController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -36,7 +36,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         }
 
         // POST: Order/Create (Handle order creation)
-        [HttpPost("Create")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Order order, int[] productIds, int[] quantities)
         {
