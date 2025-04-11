@@ -297,6 +297,11 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                 _logger.LogInformation("Search completed. {Count} product(s) found.", products.Count);
 
                 ViewBag.Categories = await _context.Categories.ToListAsync();
+                
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return PartialView("_ProductListPartial", products);
+                }
                 return View("Index", products); // Reuses the Index view with filtered results
             }
             catch (Exception ex)

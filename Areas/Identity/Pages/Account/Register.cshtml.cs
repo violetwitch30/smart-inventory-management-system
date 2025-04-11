@@ -136,7 +136,8 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
                     UserName = userName,
                     FirstName = Input.FirstName,
                     LastName = Input.LastName,
-                    Email = Input.Email
+                    Email = Input.Email,
+                    ContactInformation = Input.ContactInformation ?? ""
                 };
                 
                 var result = await _userManager.CreateAsync(user, Input.Password);

@@ -1,0 +1,45 @@
+@model IEnumerable<SmartInventoryManagementSystem.Areas.ProductManagement.Models.Product>
+
+@if (Model.Any())
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Quantity in Stock</th>
+            @if (User.IsInRole("Admin"))
+            {
+                <th>Action</th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var product in Model)
+        {
+            <tr class="@(product.Quantity < 10 ? "table-danger" : "")">
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.Category.Name</td>
+                <td>@product.Price</td>
+                <td>@product.Quantity</td>
+                @if (User.IsInRole("Admin"))
+                {
+                    <td>
+                        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Update" asp-route-id="@product.ProductId" class="btn btn-warning">Update</a>
+                        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Delete" asp-route-id="@product.ProductId" class="btn btn-danger">Delete</a>
+                    </td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="alert alert-info text-center">
+        No products found. Please try a different search!
+    </div>
+}

@@ -43,12 +43,11 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
             _logger.LogInformation("Order creation initiated for customer: {CustomerName}", order.CustomerName);
 
             // Check initial model state and array input
-            if (!ModelState.IsValid || productIds == null || quantities == null ||
-                productIds.Length != quantities.Length)
+            if (productIds == null || quantities == null || productIds.Length != quantities.Length)
             {
                 _logger.LogWarning("Model validation failed or mismatched product/quantity arrays");
-                ViewBag.Products = await _context.Products.ToListAsync();
                 ModelState.AddModelError("", "Invalid order data.");
+                ViewBag.Products = await _context.Products.ToListAsync();
                 return View(order);
             }
 
