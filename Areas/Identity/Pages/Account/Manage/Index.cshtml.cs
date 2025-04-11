@@ -67,8 +67,7 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account.Manage
             [Phone]
             [Display(Name = "Phone number")]
             public string PhoneNumber { get; set; }
-
-            [Required]
+            
             [Display(Name = "Contact Information")]
             public string ContactInformation { get; set; }
         }

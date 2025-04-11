@@ -110,7 +110,6 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
             
-            [Required(ErrorMessage = "Contact information is required.")]
             [StringLength(100, ErrorMessage = "Contact information must be between {2} and {1} characters.", MinimumLength = 6)]
             [Display(Name = "Contact Information")]
             public string ContactInformation { get; set; }
@@ -140,8 +139,7 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
                     UserName = userName,
                     FirstName = Input.FirstName,
                     LastName = Input.LastName,
-                    Email = Input.Email,
-                    ContactInformation = Input.ContactInformation
+                    Email = Input.Email
                 };
                 
                 var result = await _userManager.CreateAsync(user, Input.Password);

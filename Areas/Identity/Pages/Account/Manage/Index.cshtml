@@ -26,6 +26,10 @@
                 <span asp-validation-for="Input.LastName" class="text-danger"></span>
             </div>
             <div class="form-floating mb-3">
+                <input class="form-control" value="@($"{Model.Input.FirstName} {Model.Input.LastName}")" readonly />
+                <label>Full Name</label>
+            </div>
+            <div class="form-floating mb-3">
                 <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number."/>
                 <label asp-for="Input.PhoneNumber" class="form-label"></label>
                 <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
