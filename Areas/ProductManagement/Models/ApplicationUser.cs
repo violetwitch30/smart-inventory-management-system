@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
 namespace SmartInventoryManagementSystem.Areas.ProjectManagement.Models;
@@ -6,6 +7,7 @@ public class ApplicationUser : IdentityUser
 {
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public int UserNameChangeLimit { get; set; }
-    public byte[]? ProfilePicture { get; set; }
+    [NotMapped]
+    public string FullName => $"{FirstName} {LastName}";
+    public string ContactInformation { get; set; }
 }

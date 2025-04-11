@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net.Mail;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading;
@@ -71,6 +72,16 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
         /// </summary>
         public class InputModel
         {
+            [Display(Name = "First Name")]
+            [Required]
+            [StringLength(100, ErrorMessage = "The first name must be no greater than 100 character.")]
+            public string FirstName { get; set; }
+            
+            [Display(Name = "Last Name")]
+            [Required]
+            [StringLength(100, ErrorMessage = "The last name must be no greater than 100 character.")]
+            public string LastName { get; set; }
+            
             /// <summary>
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
             ///     directly from your code. This API may change or be removed in future releases.
@@ -98,6 +109,11 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+            
+            [Required(ErrorMessage = "Contact information is required.")]
+            [StringLength(100, ErrorMessage = "Contact information must be between {2} and {1} characters.", MinimumLength = 6)]
+            [Display(Name = "Contact Information")]
+            public string ContactInformation { get; set; }
         }
 
 
@@ -117,12 +133,25 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+                MailAddress address = new MailAddress(Input.Email);
+                string userName = address.User;
+                user = new ApplicationUser
+                {
+                    UserName = userName,
+                    FirstName = Input.FirstName,
+                    LastName = Input.LastName,
+                    Email = Input.Email,
+                    ContactInformation = Input.ContactInformation
+                };
+                
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
 
+                    await _userManager.AddToRoleAsync(user, Enum.Roles.User.ToString());
+                    
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));

@@ -7,41 +7,35 @@ public class ContextSeed
 {
     public static async Task SeedRolesAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager )
     {
-        await roleManager.CreateAsync(new IdentityRole(Enum.Roles.SuperAdmin.ToString()));
         await roleManager.CreateAsync(new IdentityRole(Enum.Roles.Admin.ToString()));
-        await roleManager.CreateAsync(new IdentityRole(Enum.Roles.Moderator.ToString()));
-        await roleManager.CreateAsync(new IdentityRole(Enum.Roles.Basic.ToString()));
+        await roleManager.CreateAsync(new IdentityRole(Enum.Roles.User.ToString()));
     }
 
     public static async Task SuperSeedRolesAsync(UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager)
     {
-        var superUser = new ApplicationUser
+        var adminUser = new ApplicationUser
         {
-            UserName = "superadmin",
-            Email = "adminsupport@domain.ca",
-            FirstName = "Super",
-            LastName = "Admin",
+            UserName = "admin",
+            Email = "admin@domain.ca",
+            FirstName = "Admin",
+            LastName = "Account",
+            ContactInformation = "admin-support",
             EmailConfirmed = true,
             PhoneNumberConfirmed = true,
         };
-
-        // Check if the super user does not already exists in the datbase
-        if (userManager.Users.All(u => u.Id != superUser.Id))
+        
+        if (userManager.Users.All(u => u.Id != adminUser.Id))
         {
-            var user = await userManager.FindByEmailAsync(superUser.Email);
-
-            // If the superuser account does not exist, proceed with creating it
+            var user = await userManager.FindByEmailAsync(adminUser.Email);
+            
             if (user == null)
             {
                 // Create the superuser account with the specified password
-                await userManager.CreateAsync(superUser, "SuperPass123!");
+                await userManager.CreateAsync(adminUser, "AdminPass123!");
                 
                 // Assign the superuser with all the following roles
-                await userManager.AddToRoleAsync(superUser, Enum.Roles.SuperAdmin.ToString());
-                await userManager.AddToRoleAsync(superUser, Enum.Roles.Admin.ToString());
-                await userManager.AddToRoleAsync(superUser, Enum.Roles.Moderator.ToString());
-                await userManager.AddToRoleAsync(superUser, Enum.Roles.Basic.ToString());
+                await userManager.AddToRoleAsync(adminUser, Enum.Roles.Admin.ToString());
             }
         }
     }
