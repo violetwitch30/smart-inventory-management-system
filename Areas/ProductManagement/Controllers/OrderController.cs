@@ -12,7 +12,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
     [Area("ProductManagement")]
     [Route("[area]/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class OrderController : Controller
     {
         private readonly ApplicationDbContext _context;

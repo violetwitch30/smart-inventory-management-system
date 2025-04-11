@@ -1,4 +1,8 @@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model List<SmartInventoryManagementSystem.Areas.ProductManagement.Models.Product>
+@inject UserManager<SmartInventoryManagementSystem.Areas.ProjectManagement.Models.ApplicationUser> UserManager
+@inject SignInManager<SmartInventoryManagementSystem.Areas.ProjectManagement.Models.ApplicationUser> SignInManager
 
 @{
     ViewBag.Title = "Products";
@@ -7,7 +11,6 @@
 
 <h2>Products</h2>
 
-<!-- alert if there are low-stock products -->
 @if (ViewBag.LowStockCount > 0)
 {
     <div class="alert alert-warning">
@@ -15,9 +18,14 @@
     </div>
 }
 
-<a asp-area="ProductManagement" asp-controller="Product" asp-action="Add" class="btn btn-primary">Add New Product</a>
-<a asp-area="ProductManagement" asp-controller="Product" asp-action="Summary" class="btn btn-primary">Summary</a>
-<a asp-area="ProductManagement" asp-controller="Product" asp-action="Search" class="btn btn-primary">Search the Products</a>
+<div class="mb-3">
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Add" class="btn btn-primary">Add New Product</a>
+        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Summary" class="btn btn-primary">Summary</a>
+    }
+    <a asp-area="ProductManagement" asp-controller="Product" asp-action="Search" class="btn btn-primary">Search the Products</a>
+</div>
 
 @if (Model.Any())
 {
@@ -29,10 +37,12 @@
             <th>Category</th>
             <th>Price</th>
             <th>Quantity in Stock</th>
-            <th>Action</th>
+            @if (User.IsInRole("Admin"))
+            {
+                <th>Action</th>
+            }
         </tr>
         </thead>
-        
         <tbody>
         @foreach (var product in Model)
         {
@@ -42,22 +52,23 @@
                 <td>@product.Category.Name</td>
                 <td>@product.Price</td>
                 <td>@product.Quantity</td>
-                <td>
-                    <a asp-area="ProductManagement" asp-controller="Product" asp-action="Update" asp-route-id="@product.ProductId" class="btn btn-warning">Update</a>
-                    <a asp-area="ProductManagement" asp-controller="Product" asp-action="Delete" asp-route-id="@product.ProductId" class="btn btn-danger">Delete</a>
-                </td>
+                @if (User.IsInRole("Admin"))
+                {
+                    <td>
+                        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Update" asp-route-id="@product.ProductId" class="btn btn-warning">Update</a>
+                        <a asp-area="ProductManagement" asp-controller="Product" asp-action="Delete" asp-route-id="@product.ProductId" class="btn btn-danger">Delete</a>
+                    </td>
+                }
             </tr>
         }
         </tbody>
     </table>
 }
-
 else
 {
     <p>No products available</p>
 }
 
-<!-- red colour for low-stock -->
 <style>
     .table-danger {
         background-color: darkred;

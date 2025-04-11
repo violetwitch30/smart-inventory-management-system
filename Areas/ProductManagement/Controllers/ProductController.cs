@@ -36,6 +36,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         }
         
         [HttpGet("Add")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Add()
         {
             _logger.LogInformation("ProductController Add (GET) visited at {Time}", DateTime.Now);
@@ -47,6 +48,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         // save new product
         [HttpPost("Add")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Add(Product product)
         {
             _logger.LogInformation("ProductController Add (POST) visited at {Time}", DateTime.UtcNow);
@@ -76,6 +78,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         }
         
         [HttpGet("Update/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id)
         {
             _logger.LogInformation("ProductController Update visited at {Time}", DateTime.Now);
@@ -94,6 +97,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 
         [HttpPost("Update/{id}")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id,
                 [Bind("ProductId, Name, Description, CategoryId, Price, Quantity, LowStockThreshold")] Product product)
         {
@@ -103,59 +107,59 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                 _logger.LogWarning("Update failed: route id {id} doesn't match product id {ProductId}", id, product.ProductId);
                 return NotFound();
             }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    var existingProduct = await _context.Products.FindAsync(id);
-
-                    if (existingProduct == null)
-                    {
-                        _logger.LogWarning("Product with ID {id} not found", id);
-                        return NotFound();
-                    }
-
-                    // Assign updated values
-                    existingProduct.Name = product.Name;
-                    existingProduct.Price = product.Price;
-                    existingProduct.Quantity = product.Quantity;
-                    existingProduct.LowStockThreshold = product.LowStockThreshold;
-
-                    // Validate category
-                    var category = await _context.Categories.FindAsync(product.CategoryId);
-                    if (category == null)
-                    {
-                        ModelState.AddModelError("CategoryId", "Invalid category selected.");
-                        ViewBag.Categories = await _context.Categories.ToListAsync();
-                        _logger.LogWarning("Update failed: invalid category for product {id}", id);
-                        return View(product);
-                    }
-                    existingProduct.Category = category;
-
-                    // Save changes
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation("Product with ID {id} updated successfully", id);
-
-                    return RedirectToAction("Index");
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    _logger.LogError(ex, "Concurrency error while updating product with ID {id}", id);
-                    if (!await ProductExists(product.ProductId))
-                    {
-                        _logger.LogWarning("Product with ID {id} not found during concurrency check", product.ProductId);
-                        return NotFound();
-                    }
-
-                    throw;
-                }
-            }
             
-            // Validation failed – return form with categories
-            _logger.LogWarning("Update failed validation for product {id}", id);
-            ViewBag.Categories = await _context.Categories.ToListAsync();
-            return View(product);
+            try 
+            {
+                var existingProduct = await _context.Products.FindAsync(id);
+
+                if (existingProduct == null)
+                {
+                    _logger.LogWarning("Product with ID {id} not found", id);
+                    return NotFound();
+                }
+
+                // Assign updated values
+                existingProduct.Name = product.Name;
+                existingProduct.Description = product.Description;
+                existingProduct.Price = product.Price;
+                existingProduct.Quantity = product.Quantity;
+                existingProduct.LowStockThreshold = product.LowStockThreshold;
+
+                // Validate category
+                var category = await _context.Categories.FindAsync(product.CategoryId);
+                if (category == null)
+                {
+                    ModelState.AddModelError("CategoryId", "Invalid category selected.");
+                    ViewBag.Categories = await _context.Categories.ToListAsync();
+                    _logger.LogWarning("Update failed: invalid category for product {id}", id);
+                    return View(product);
+                }
+                existingProduct.Category = category;
+
+                // validate name
+                if (string.IsNullOrWhiteSpace(product.Name))
+                {
+                    ModelState.AddModelError("Name", "Product name is required.");
+                    ViewBag.Categories = _context.Categories.ToList();
+                    return View(product);
+                }
+                    
+                // Save changes
+                await _context.SaveChangesAsync(); 
+                _logger.LogInformation("Product with ID {id} updated successfully", id);
+
+                return RedirectToAction("Index");
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "Concurrency error while updating product with ID {id}", id);
+                if (!await ProductExists(product.ProductId))
+                {
+                    _logger.LogWarning("Product with ID {id} not found during concurrency check", product.ProductId);
+                    return NotFound();
+                }
+                throw;
+            }
         }
         
         private async Task<bool> ProductExists(int id)
@@ -164,6 +168,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         }
 
         [HttpGet("Delete/{id}")]
+        [Authorize(Roles = "Admin")]
         //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -179,6 +184,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         
         [HttpPost("Delete/{id}"), ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {

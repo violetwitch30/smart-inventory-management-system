@@ -128,13 +128,10 @@ namespace SmartInventoryManagementSystem.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             if (ModelState.IsValid)
             {
-                var user = CreateUser();
-
-                await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-                await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
                 MailAddress address = new MailAddress(Input.Email);
                 string userName = address.User;
-                user = new ApplicationUser
+
+                var user = new ApplicationUser
                 {
                     UserName = userName,
                     FirstName = Input.FirstName,
