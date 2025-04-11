@@ -53,13 +53,6 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         {
             _logger.LogInformation("ProductController Add (POST) visited at {Time}", DateTime.UtcNow);
 
-            if (!ModelState.IsValid || string.IsNullOrWhiteSpace(product.Name))
-            {
-                _logger.LogWarning("Model validation failed or product name is empty");
-                ViewBag.Categories = await _context.Categories.ToListAsync();
-                return View(product);
-            }
-
             // Validate category existence
             var cat = await _context.Categories.FindAsync(product.CategoryId);
             if (cat == null)
@@ -67,12 +60,19 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                 _logger.LogWarning("Invalid category ID {CategoryId} submitted", product.CategoryId);
                 return RedirectToAction("Index");
             }
-
-            product.Category = cat;
+            {
+                product.Category = cat;
+            }
+            
+            if (string.IsNullOrWhiteSpace(product.Name))
+            {
+                _logger.LogWarning("Model validation failed or product name is empty");
+                ViewBag.Categories = await _context.Categories.ToListAsync();
+                return View(product);
+            }
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
-
             _logger.LogInformation("Product created: {@Product}", product);
             return RedirectToAction("Index");
         }
