@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 using SmartInventoryManagementSystem.Models;
 
 namespace SmartInventoryManagementSystem.Controllers;
@@ -27,7 +26,6 @@ public class HomeController : Controller
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    
     [HttpGet]
     public IActionResult Error()
     {
@@ -36,11 +34,14 @@ public class HomeController : Controller
     
     public IActionResult NotFound(int statusCode)
     {
-        if (statusCode == 404)
-        {
-            return View("NotFound");
-        }
+        _logger.LogWarning("NotFound triggered with status code");
+        return View();
+    }
 
-        return View("Error");
+    [Route("ServerError")]
+    public IActionResult ServerError()
+    {
+        _logger.LogError("Server error occurred.");
+        return View();
     }
 }

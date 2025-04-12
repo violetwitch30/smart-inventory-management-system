@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 using SmartInventoryManagementSystem.Data;
-using SmartInventoryManagementSystem.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,25 +23,37 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Index()
         {
-            _logger.LogInformation("ProductController Index visited at {Time}", DateTime.Now);
-            
-            var products = await _context.Products.Include(p => p.Category).ToListAsync();
+            try
+            {
+                var products = await _context.Products.Include(p => p.Category).ToListAsync();
 
-            // count low-stock products for the alert
-            int lowStockCount = products.Count(p => p.Quantity < 10);
-            ViewBag.LowStockCount = lowStockCount;
+                // Count low-stock products for the alert
+                int lowStockCount = products.Count(p => p.Quantity < 10);
+                ViewBag.LowStockCount = lowStockCount;
 
-            return View(products);
+                return View(products);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading product list at {Time}", DateTime.Now);
+                return View("Error");
+            }
         }
         
         [HttpGet("Add")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Add()
         {
-            _logger.LogInformation("ProductController Add (GET) visited at {Time}", DateTime.Now);
-            
-            ViewBag.Categories = await _context.Categories.ToListAsync();
-            return View();
+            try
+            {
+                ViewBag.Categories = await _context.Categories.ToListAsync();
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading add product form at {Time}", DateTime.Now);
+                return View("Error");
+            }
         }
 
         // save new product
@@ -51,48 +62,68 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Add(Product product)
         {
-            _logger.LogInformation("ProductController Add (POST) visited at {Time}", DateTime.UtcNow);
-
-            // Validate category existence
-            var cat = await _context.Categories.FindAsync(product.CategoryId);
-            if (cat == null)
+            try
             {
-                _logger.LogWarning("Invalid category ID {CategoryId} submitted", product.CategoryId);
+                // Validate category existence
+                var cat = await _context.Categories.FindAsync(product.CategoryId);
+                if (cat == null)
+                {
+                    _logger.LogWarning("Invalid category ID {CategoryId} submitted", product.CategoryId);
+                    ModelState.AddModelError("CategoryId", "Invalid category selected.");
+                    ViewBag.Categories = await _context.Categories.ToListAsync();
+                    return View(product);
+                }
+                product.Category = cat;
+                
+                if (string.IsNullOrWhiteSpace(product.Name))
+                {
+                    _logger.LogWarning("Product name is empty or model validation failed");
+                    ModelState.AddModelError("Name", "Product name is required.");
+                    ViewBag.Categories = await _context.Categories.ToListAsync();
+                    return View(product);
+                }
+
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Product created: {@Product}", product);
                 return RedirectToAction("Index");
             }
+            catch (DbUpdateException dbEx)
             {
-                product.Category = cat;
-            }
-            
-            if (string.IsNullOrWhiteSpace(product.Name))
-            {
-                _logger.LogWarning("Model validation failed or product name is empty");
+                _logger.LogError(dbEx, "Database error while adding product at {Time}", DateTime.Now);
+                ModelState.AddModelError("", "There was a problem saving the product due to a database error. Please try again later.");
                 ViewBag.Categories = await _context.Categories.ToListAsync();
                 return View(product);
             }
-
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Product created: {@Product}", product);
-            return RedirectToAction("Index");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while adding product at {Time}", DateTime.Now);
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again later.");
+                ViewBag.Categories = await _context.Categories.ToListAsync();
+                return View(product);
+            }
         }
         
         [HttpGet("Update/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id)
         {
-            _logger.LogInformation("ProductController Update visited at {Time}", DateTime.Now);
-            
-            var product = await _context.Products.FindAsync(id);
-            
-            if (product == null)
+            try
             {
-                _logger.LogWarning("Product with {id} not found", id);
-                return NotFound();
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    _logger.LogWarning("Product with ID {id} not found", id);
+                    return NotFound();
+                }
+                ViewBag.Categories = await _context.Categories.ToListAsync();
+                return View(product);
             }
-
-            ViewBag.Categories = _context.Categories.ToList();
-            return View(product);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading product update form for ID {id} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpPost("Update/{id}")]
@@ -172,14 +203,21 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> Delete(int id)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
-            if (product == null)
+            try
             {
-                _logger.LogWarning("Product with ID {id} not found for delete", id);
-                return NotFound();
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
+                if (product == null)
+                {
+                    _logger.LogWarning("Product with ID {id} not found for delete", id);
+                    return NotFound();
+                }
+                return View(product);
             }
-
-            return View(product);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading product delete view for product ID {id} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
         
         [HttpPost("Delete/{id}"), ActionName("Delete")]
@@ -188,17 +226,25 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            _logger.LogInformation("DeleteConfirmed called for Product ID {id}", id);
-            var product = await _context.Products.FindAsync(id);
-            if (product != null)
+            try
             {
-                _context.Products.Remove(product);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Product with ID {id} deleted successfully", id);
-                return RedirectToAction("Index");
+                _logger.LogInformation("DeleteConfirmed called for Product ID {id}", id);
+                var product = await _context.Products.FindAsync(id);
+                if (product != null)
+                {
+                    _context.Products.Remove(product);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Product with ID {id} deleted successfully", id);
+                    return RedirectToAction("Index");
+                }
+                _logger.LogWarning("DeleteConfirmed failed: Product with ID {id} not found", id);
+                return NotFound();
             }
-            _logger.LogWarning("DeleteConfirmed failed: Product with ID {id} not found", id);
-            return NotFound();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting product with ID {id} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
         
         [HttpGet("Summary")]
@@ -307,7 +353,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while searching products");
-                return View("Error"); // Optional: you can customize the error view
+                return View("Error");
             }
         }
     }

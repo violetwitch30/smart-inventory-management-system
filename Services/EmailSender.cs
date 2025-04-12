@@ -19,7 +19,6 @@ public class EmailSender : IEmailSender
     {
         try
         {
-            // same variables as for SendGrid, just using MailKit types now
             var from = new MailboxAddress("Smart Inventory Management System Default Sender", "karina.vetlugina@georgebrown.ca");
             var to = new MailboxAddress("", email);
 

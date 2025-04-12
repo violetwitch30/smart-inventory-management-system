@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 using SmartInventoryManagementSystem.Data;
-using SmartInventoryManagementSystem.Models;
 
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
@@ -24,17 +23,31 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Index()
         {
-            _logger.LogInformation("CategoryController Index visited at {Time}", DateTime.Now);
-            var categories = await _context.Categories.ToListAsync();
-            return View(categories);
+            try
+            {
+                var categories = await _context.Categories.ToListAsync();
+                return View(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading category list at {Time}", DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpGet("Add")]
         [Authorize(Roles = "Admin")]
         public IActionResult Add()
         {
-            _logger.LogInformation("CategoryController Add (GET) visited at {Time}", DateTime.Now);
-            return View();
+            try
+            {
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading add category form at {Time}", DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpPost("Add")]
@@ -42,30 +55,53 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Add(Category category)
         {
-            if (string.IsNullOrWhiteSpace(category.Name))
+            try
             {
-                _logger.LogWarning("Attempted to add category with empty name");
-                ModelState.AddModelError("Name", "Category name is required.");
+                if (string.IsNullOrWhiteSpace(category.Name))
+                {
+                    _logger.LogWarning("Attempted to add category with empty name");
+                    ModelState.AddModelError("Name", "Category name is required.");
+                    return View(category);
+                }
+
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Category added: {@Category}", category);
+                return RedirectToAction("Index");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error while adding category at {Time}", DateTime.Now);
+                ModelState.AddModelError("", "There was a problem saving the category due to a database error. Please try again later.");
                 return View(category);
             }
-
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Category added: {@Category}", category);
-            return RedirectToAction("Index");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while adding category at {Time}", DateTime.Now);
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again later.");
+                return View(category);
+            }
         }
 
         [HttpGet("Update/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
+            try
             {
-                _logger.LogWarning("Category with ID {id} not found", id);
-                return NotFound();
+                var category = await _context.Categories.FindAsync(id);
+                if (category == null)
+                {
+                    _logger.LogWarning("Category with ID {id} not found", id);
+                    return NotFound();
+                }
+                return View(category);
             }
-            return View(category);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading category update form for ID {id} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpPost("Update/{id}")]
@@ -73,6 +109,8 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, Category category)
         {
+            // _logger.LogInformation("CategoryController Add (POST) visited at {Time}", DateTime.Now);
+            
             if (id != category.CategoryId)
             {
                 return NotFound();
@@ -102,14 +140,21 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
+            try
             {
-                _logger.LogWarning("Category with ID {id} not found for delete", id);
-                return NotFound();
+                var category = await _context.Categories.FindAsync(id);
+                if (category == null)
+                {
+                    _logger.LogWarning("Category with ID {id} not found for delete", id);
+                    return NotFound();
+                }
+                return View(category);
             }
-
-            return View(category);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading category delete view for ID {id} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpPost("Delete/{id}"), ActionName("Delete")]
@@ -117,14 +162,23 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category != null)
+            try
             {
-                _context.Categories.Remove(category);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Category with ID {id} deleted", id);
+                _logger.LogInformation("DeleteConfirmed called for Category ID {id}", id);
+                var category = await _context.Categories.FindAsync(id);
+                if (category != null)
+                {
+                    _context.Categories.Remove(category);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Category with ID {id} deleted", id);
+                }
+                return RedirectToAction("Index");
             }
-            return RedirectToAction("Index");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting category with ID {id} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
     }
 }

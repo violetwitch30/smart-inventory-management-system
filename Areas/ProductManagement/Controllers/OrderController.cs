@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using SmartInventoryManagementSystem.Data;
-using SmartInventoryManagementSystem.Models;
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
@@ -31,168 +27,239 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Create()
         {
-            _logger.LogInformation("OrderController Index visited at {Time}", DateTime.Now);
-
-            ViewBag.Products = await _context.Products.ToListAsync();
-
-            // Pre-fill for regular user
-            if (!User.IsInRole("Admin"))
+            try
             {
-                var user = await _userManager.GetUserAsync(User);
-                if (user != null)
-                {
-                    var order = new Order
-                    {
-                        CustomerName = $"{user.FirstName} {user.LastName}",
-                        CustomerEmail = user.Email
-                    };
-                    return View(order);
-                }
-            }
+                ViewBag.Products = await _context.Products.ToListAsync();
 
-            return View();
+                // Pre-fill for non-admin users
+                if (!User.IsInRole("Admin"))
+                {
+                    var user = await _userManager.GetUserAsync(User);
+                    if (user != null)
+                    {
+                        var order = new Order
+                        {
+                            CustomerName = $"{user.FirstName} {user.LastName}",
+                            CustomerEmail = user.Email
+                        };
+                        return View(order);
+                    }
+                }
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading the order creation form at {Time} for {User}",
+                    DateTime.Now, User?.Identity?.Name ?? "Anonymous");
+                // Redirect to a generic error view, or provide a user-friendly message as needed.
+                return View("Error");
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Order order, int[] productIds, int[] quantities)
         {
-            _logger.LogInformation("Order creation initiated for customer: {CustomerName}", order.CustomerName);
-
-            if (!User.IsInRole("Admin"))
+            try
             {
-                var user = await _userManager.GetUserAsync(User);
-                order.CustomerName = $"{user.FirstName} {user.LastName}";
-                order.CustomerEmail = user.Email;
-            }
+                _logger.LogInformation("Order creation initiated for customer: {CustomerName} at {Time}", order.CustomerName, DateTime.Now);
 
-            if (productIds == null || quantities == null || productIds.Length != quantities.Length)
-            {
-                _logger.LogWarning("Invalid product/quantity input");
-                ModelState.AddModelError("", "Invalid order data.");
-                ViewBag.Products = await _context.Products.ToListAsync();
-                return View(order);
-            }
-
-            var products = await _context.Products
-                .Where(p => productIds.Contains(p.ProductId))
-                .ToListAsync();
-
-            for (int i = 0; i < productIds.Length; i++)
-            {
-                var product = products.FirstOrDefault(p => p.ProductId == productIds[i]);
-                if (product == null || quantities[i] > product.Quantity)
+                // Ensure the current user details are used for non-admins
+                if (!User.IsInRole("Admin"))
                 {
-                    ModelState.AddModelError("", $"Not enough stock for {product?.Name ?? "Unknown"}.");
+                    var user = await _userManager.GetUserAsync(User);
+                    order.CustomerName = $"{user.FirstName} {user.LastName}";
+                    order.CustomerEmail = user.Email;
+                }
+
+                // Validate product and quantity inputs
+                if (productIds == null || quantities == null || productIds.Length != quantities.Length)
+                {
+                    _logger.LogWarning("Invalid product/quantity input for customer: {CustomerName}", order.CustomerName);
+                    ModelState.AddModelError("", "Invalid order data.");
                     ViewBag.Products = await _context.Products.ToListAsync();
                     return View(order);
                 }
-            }
 
-            var existingOrder = await _context.Orders.FirstOrDefaultAsync(
-                o => o.CustomerName == order.CustomerName && o.CustomerEmail == order.CustomerEmail);
+                // Retrieve the products from the database
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.ProductId))
+                    .ToListAsync();
 
-            if (existingOrder != null)
-            {
-                var productIdsList = existingOrder.ProductIds?.ToList() ?? new List<int>();
-                var quantitiesList = existingOrder.Quantities?.ToList() ?? new List<int>();
-
+                // Check stock levels for each product
                 for (int i = 0; i < productIds.Length; i++)
                 {
-                    var index = productIdsList.IndexOf(productIds[i]);
-                    if (index >= 0)
-                        quantitiesList[index] += quantities[i];
-                    else
+                    var product = products.FirstOrDefault(p => p.ProductId == productIds[i]);
+                    if (product == null || quantities[i] > product.Quantity)
                     {
-                        productIdsList.Add(productIds[i]);
-                        quantitiesList.Add(quantities[i]);
+                        _logger.LogWarning("Not enough stock for {product}", product.Name);
+                        ModelState.AddModelError("", $"Not enough stock for {product?.Name ?? "Unknown"}.");
+                        ViewBag.Products = await _context.Products.ToListAsync();
+                        return View(order);
+                    }
+                }
+
+                // Check if an order already exists for this customer
+                var existingOrder = await _context.Orders.FirstOrDefaultAsync(
+                    o => o.CustomerName == order.CustomerName && o.CustomerEmail == order.CustomerEmail);
+
+                if (existingOrder != null)
+                {
+                    var productIdsList = existingOrder.ProductIds?.ToList() ?? new List<int>();
+                    var quantitiesList = existingOrder.Quantities?.ToList() ?? new List<int>();
+
+                    for (int i = 0; i < productIds.Length; i++)
+                    {
+                        var index = productIdsList.IndexOf(productIds[i]);
+                        if (index >= 0)
+                            quantitiesList[index] += quantities[i];
+                        else
+                        {
+                            productIdsList.Add(productIds[i]);
+                            quantitiesList.Add(quantities[i]);
+                        }
+
+                        // Deduct the purchased quantity from the product's stock
+                        var product = products.First(p => p.ProductId == productIds[i]);
+                        product.Quantity -= quantities[i];
                     }
 
-                    var product = products.First(p => p.ProductId == productIds[i]);
-                    product.Quantity -= quantities[i];
+                    existingOrder.ProductIds = productIdsList.ToArray();
+                    existingOrder.Quantities = quantitiesList.ToArray();
+                    _context.Orders.Update(existingOrder);
+                    await _context.SaveChangesAsync();
+
+                    return RedirectToAction("Summary", new { id = existingOrder.OrderId });
                 }
-
-                existingOrder.ProductIds = productIdsList.ToArray();
-                existingOrder.Quantities = quantitiesList.ToArray();
-                _context.Orders.Update(existingOrder);
-                await _context.SaveChangesAsync();
-                return RedirectToAction("Summary", new { id = existingOrder.OrderId });
-            }
-            else
-            {
-                order.OrderId = await _context.Orders.AnyAsync() ? await _context.Orders.MaxAsync(o => o.OrderId) + 1 : 1;
-                order.ProductIds = productIds;
-                order.Quantities = quantities;
-
-                foreach (var item in productIds.Select((pid, i) => new { pid, qty = quantities[i] }))
+                else
                 {
-                    var product = products.First(p => p.ProductId == item.pid);
-                    product.Quantity -= item.qty;
-                }
+                    // Generate new order ID (assuming numeric order IDs)
+                    order.OrderId = await _context.Orders.AnyAsync() ? await _context.Orders.MaxAsync(o => o.OrderId) + 1 : 1;
+                    order.ProductIds = productIds;
+                    order.Quantities = quantities;
 
-                _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
-                return RedirectToAction("Summary", new { id = order.OrderId });
+                    // Deduct stock for each ordered product
+                    foreach (var item in productIds.Select((pid, i) => new { pid, qty = quantities[i] }))
+                    {
+                        var product = products.First(p => p.ProductId == item.pid);
+                        product.Quantity -= item.qty;
+                    }
+
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync();
+
+                    return RedirectToAction("Summary", new { id = order.OrderId });
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log the detailed database update error
+                _logger.LogError(dbEx, "Database error while creating order for {CustomerName} at {Time}",
+                    order.CustomerName, DateTime.Now);
+                ModelState.AddModelError("", "There was a problem processing your order due to a database error. Please try again later.");
+                ViewBag.Products = await _context.Products.ToListAsync();
+                return View(order);
+            }
+            catch (Exception ex)
+            {
+                // Log any unexpected errors
+                _logger.LogError(ex, "An unexpected error occurred while processing the order for {CustomerName} at {Time}",
+                    order.CustomerName, DateTime.Now);
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again later.");
+                ViewBag.Products = await _context.Products.ToListAsync();
+                return View(order);
             }
         }
 
         [HttpGet("Summary")]
         public async Task<IActionResult> Summary(int id)
         {
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == id);
-            if (order == null) return NotFound();
+            try
+            {
+                var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == id);
+                if (order == null)
+                {
+                    _logger.LogWarning("Order with ID {OrderId} not found.", id);
+                    return NotFound();
+                }
 
-            ViewBag.Products = await _context.Products.ToListAsync();
-            return View(order);
+                ViewBag.Products = await _context.Products.ToListAsync();
+                return View(order);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving order summary for Order ID {OrderId} at {Time}", id, DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpGet("Track")]
         public async Task<IActionResult> Track()
         {
-            if (!User.IsInRole("Admin"))
+            try
             {
-                var user = await _userManager.GetUserAsync(User);
-                if (user != null)
+                if (!User.IsInRole("Admin"))
                 {
-                    var orders = await _context.Orders
-                        .Where(o => o.CustomerEmail == user.Email)
-                        .OrderByDescending(o => o.OrderDate)
-                        .ToListAsync();
+                    var user = await _userManager.GetUserAsync(User);
+                    if (user != null)
+                    {
+                        var orders = await _context.Orders
+                            .Where(o => o.CustomerEmail == user.Email)
+                            .OrderByDescending(o => o.OrderDate)
+                            .ToListAsync();
 
-                    if (orders.Count == 0)
-                        return View("Track");
+                        if (orders.Count == 0)
+                        {
+                            _logger.LogInformation("No orders found for user {UserEmail}", user.Email);
+                            return View("Track");
+                        }
 
-                    ViewBag.Products = await _context.Products.ToListAsync();
-                    return View("Summary", orders.First());
+                        ViewBag.Products = await _context.Products.ToListAsync();
+                        return View("Summary", orders.First());
+                    }
                 }
+                return View(); // For Admin: allow manual entry
             }
-
-            return View(); // for Admin: allow manual entry
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during order tracking at {Time}", DateTime.Now);
+                return View("Error");
+            }
         }
 
         [HttpPost("Track")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Track(string customerName, string customerEmail)
         {
-            if (string.IsNullOrEmpty(customerName) || string.IsNullOrEmpty(customerEmail))
+            try
             {
-                ModelState.AddModelError("", "Name and email are required");
+                if (string.IsNullOrEmpty(customerName) || string.IsNullOrEmpty(customerEmail))
+                {
+                    ModelState.AddModelError("", "Name and email are required");
+                    return View();
+                }
+
+                var orders = await _context.Orders
+                    .Where(o => o.CustomerName == customerName && o.CustomerEmail == customerEmail)
+                    .OrderByDescending(o => o.OrderDate)
+                    .ToListAsync();
+
+                if (!orders.Any())
+                {
+                    ModelState.AddModelError("", "No orders found");
+                    return View();
+                }
+
+                ViewBag.Products = await _context.Products.ToListAsync();
+                return View("Summary", orders.First());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error tracking order for customer {CustomerName} at {Time}", customerName, DateTime.Now);
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again later.");
                 return View();
             }
-
-            var orders = await _context.Orders
-                .Where(o => o.CustomerName == customerName && o.CustomerEmail == customerEmail)
-                .OrderByDescending(o => o.OrderDate)
-                .ToListAsync();
-
-            if (!orders.Any())
-            {
-                ModelState.AddModelError("", "No orders found");
-                return View();
-            }
-
-            ViewBag.Products = await _context.Products.ToListAsync();
-            return View("Summary", orders.First());
         }
     }
 }

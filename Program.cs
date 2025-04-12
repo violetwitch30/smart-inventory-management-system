@@ -15,10 +15,6 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options => 
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<ApplicationDbContext>();
-
-// builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<ApplicationDbContext>();
-
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => 
         options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -29,16 +25,11 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 // Configure Serilog
-// Logging Levels: Verbose, Debug, Information, Warning, Error, Fatal
 Log.Logger = new LoggerConfiguration()
-    //.MinimumLevel.Debug() // Only logs Debug and below
-    //.WriteTo.Console()
-    //.WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day, rollOnFileSizeLimit: true) // daily log files
-    //.Enrich.FromLogContext()
     .ReadFrom.Configuration(builder.Configuration) // read log configuration from appsettings
     .CreateLogger();
 
-// Inject out Brevo email sender
+// Inject Brevo email sender
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
 
 var app = builder.Build();
@@ -46,11 +37,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler("/Home/ServerError");
     app.UseHsts();
-    app.UseStatusCodePagesWithRedirects("/Home/NotFound?statusCode={0}");
 }
+
+app.UseStatusCodePagesWithReExecute("/Home/NotFound", "?statusCode={0}");
 
 using var scope = app.Services.CreateScope();
 var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
@@ -71,13 +62,27 @@ catch (Exception ex)
     logger.LogError(ex, "An error occurred while seeding the database.");
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); 
 app.UseStaticFiles();
     
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+    logger.LogInformation("Request: {Method} {Path} by {User} at {Time}",
+        context.Request.Method,
+        context.Request.Path,
+        context.User?.Identity?.Name ?? "Anonymous",
+        DateTime.Now);
+
+    await next();
+});
+
 app.MapRazorPages();
 
 app.MapControllerRoute(

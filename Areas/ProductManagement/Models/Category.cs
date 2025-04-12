@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using SmartInventoryManagementSystem.Models;
 
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 
