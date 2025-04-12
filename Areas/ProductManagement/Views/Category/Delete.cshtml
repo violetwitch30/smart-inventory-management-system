@@ -1,0 +1,18 @@
+@model SmartInventoryManagementSystem.Areas.ProductManagement.Models.Category
+@{
+    ViewBag.Title = "Delete Category";
+    Layout = "_Layout";
+}
+
+<h2>Delete Category</h2>
+
+<div class="alert alert-danger">
+    Are you sure you want to delete the category <strong>@Model.Name</strong>?
+</div>
+
+<form asp-area="ProductManagement" asp-controller="Category" asp-action="Delete" asp-route-id="@Model.CategoryId" method="post">
+    <input type="hidden" asp-for="CategoryId"/>
+
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

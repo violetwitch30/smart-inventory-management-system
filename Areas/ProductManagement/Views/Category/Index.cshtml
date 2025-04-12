@@ -1,0 +1,39 @@
+@model IEnumerable<SmartInventoryManagementSystem.Areas.ProductManagement.Models.Category>
+@{
+    ViewBag.Title = "Categories";
+    Layout = "_Layout";
+}
+
+<h2>Categories</h2>
+
+@if (User.IsInRole("Admin"))
+{
+    <a asp-action="Add" class="btn btn-primary mb-3">Add Category</a>
+}
+
+<table class="table table-bordered">
+    <thead>
+    <tr>
+        <th>Category Name</th>
+        @if (User.IsInRole("Admin"))
+        {
+            <th>Actions</th>
+        }
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var category in Model)
+    {
+        <tr>
+            <td>@category.Name</td>
+            @if (User.IsInRole("Admin"))
+            {
+                <td>
+                    <a asp-action="Update" asp-route-id="@category.CategoryId" class="btn btn-warning btn-sm">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@category.CategoryId" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            }
+        </tr>
+    }
+    </tbody>
+</table>

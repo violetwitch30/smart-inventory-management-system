@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
+using Microsoft.AspNetCore.Identity;
+using SmartInventoryManagementSystem.Areas.ProjectManagement.Models;
 
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
@@ -17,35 +19,56 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<OrderController> _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        // Constructor
-        public OrderController(ApplicationDbContext context, ILogger<OrderController> logger)
+        public OrderController(ApplicationDbContext context, ILogger<OrderController> logger, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _logger = logger;
+            _userManager = userManager;
         }
 
-        // GET: Order/Create (Display the order creation form)
         [HttpGet("")]
         public async Task<IActionResult> Create()
         {
             _logger.LogInformation("OrderController Index visited at {Time}", DateTime.Now);
 
-            ViewBag.Products = await _context.Products.ToListAsync(); // load products
+            ViewBag.Products = await _context.Products.ToListAsync();
+
+            // Pre-fill for regular user
+            if (!User.IsInRole("Admin"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user != null)
+                {
+                    var order = new Order
+                    {
+                        CustomerName = $"{user.FirstName} {user.LastName}",
+                        CustomerEmail = user.Email
+                    };
+                    return View(order);
+                }
+            }
+
             return View();
         }
 
-        // POST: Order/Create (Handle order creation)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Order order, int[] productIds, int[] quantities)
         {
             _logger.LogInformation("Order creation initiated for customer: {CustomerName}", order.CustomerName);
 
-            // Check initial model state and array input
+            if (!User.IsInRole("Admin"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                order.CustomerName = $"{user.FirstName} {user.LastName}";
+                order.CustomerEmail = user.Email;
+            }
+
             if (productIds == null || quantities == null || productIds.Length != quantities.Length)
             {
-                _logger.LogWarning("Model validation failed or mismatched product/quantity arrays");
+                _logger.LogWarning("Invalid product/quantity input");
                 ModelState.AddModelError("", "Invalid order data.");
                 ViewBag.Products = await _context.Products.ToListAsync();
                 return View(order);
@@ -55,35 +78,19 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                 .Where(p => productIds.Contains(p.ProductId))
                 .ToListAsync();
 
-            // Stock validation
             for (int i = 0; i < productIds.Length; i++)
             {
                 var product = products.FirstOrDefault(p => p.ProductId == productIds[i]);
-                if (product == null)
+                if (product == null || quantities[i] > product.Quantity)
                 {
-                    _logger.LogWarning("Product with ID {ProductId} not found", productIds[i]);
-                    ModelState.AddModelError("", "Selected product does not exist.");
-                    ViewBag.Products = await _context.Products.ToListAsync();
-                    return View(order);
-                }
-
-                await _context.Entry(product).ReloadAsync(); // ensure current stock
-
-                if (quantities[i] > product.Quantity)
-                {
-                    _logger.LogWarning("Stock issue: Requested {Requested}, Available {Available} for {ProductName}",
-                        quantities[i], product.Quantity, product.Name);
-                    ModelState.AddModelError("",
-                        $"Not enough stock for {product.Name}. Available: {product.Quantity}, Requested: {quantities[i]}.");
+                    ModelState.AddModelError("", $"Not enough stock for {product?.Name ?? "Unknown"}.");
                     ViewBag.Products = await _context.Products.ToListAsync();
                     return View(order);
                 }
             }
 
-            // Check for existing order (same customer)
-            var existingOrder = await _context.Orders
-                .FirstOrDefaultAsync(
-                    o => o.CustomerName == order.CustomerName && o.CustomerEmail == order.CustomerEmail);
+            var existingOrder = await _context.Orders.FirstOrDefaultAsync(
+                o => o.CustomerName == order.CustomerName && o.CustomerEmail == order.CustomerEmail);
 
             if (existingOrder != null)
             {
@@ -92,126 +99,100 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 
                 for (int i = 0; i < productIds.Length; i++)
                 {
-                    var product = products.FirstOrDefault(p => p.ProductId == productIds[i]);
-                    if (product != null)
+                    var index = productIdsList.IndexOf(productIds[i]);
+                    if (index >= 0)
+                        quantitiesList[index] += quantities[i];
+                    else
                     {
-                        int index = productIdsList.IndexOf(productIds[i]);
-                        if (index >= 0)
-                        {
-                            if (quantities[i] > product.Quantity)
-                            {
-                                _logger.LogWarning("Not enough stock to merge order for {ProductName}", product.Name);
-                                ModelState.AddModelError("", $"Not enough stock for {product.Name}.");
-                                ViewBag.Products = await _context.Products.ToListAsync();
-                                return View(order);
-                            }
-
-                            quantitiesList[index] += quantities[i];
-                        }
-                        else
-                        {
-                            productIdsList.Add(productIds[i]);
-                            quantitiesList.Add(quantities[i]);
-                        }
-
-                        product.Quantity -= quantities[i];
+                        productIdsList.Add(productIds[i]);
+                        quantitiesList.Add(quantities[i]);
                     }
+
+                    var product = products.First(p => p.ProductId == productIds[i]);
+                    product.Quantity -= quantities[i];
                 }
 
                 existingOrder.ProductIds = productIdsList.ToArray();
                 existingOrder.Quantities = quantitiesList.ToArray();
                 _context.Orders.Update(existingOrder);
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Order for customer {Customer} merged into existing order ID {OrderId}",
-                    order.CustomerName, existingOrder.OrderId);
                 return RedirectToAction("Summary", new { id = existingOrder.OrderId });
             }
             else
             {
-                // New order
-                order.OrderId = await _context.Orders.AnyAsync()
-                    ? await _context.Orders.MaxAsync(o => o.OrderId) + 1
-                    : 1;
-
+                order.OrderId = await _context.Orders.AnyAsync() ? await _context.Orders.MaxAsync(o => o.OrderId) + 1 : 1;
                 order.ProductIds = productIds;
                 order.Quantities = quantities;
 
-                for (int i = 0; i < productIds.Length; i++)
+                foreach (var item in productIds.Select((pid, i) => new { pid, qty = quantities[i] }))
                 {
-                    var product = products.FirstOrDefault(p => p.ProductId == productIds[i]);
-                    if (product != null)
-                    {
-                        product.Quantity -= quantities[i];
-                    }
+                    var product = products.First(p => p.ProductId == item.pid);
+                    product.Quantity -= item.qty;
                 }
 
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("New order created: ID {OrderId} for customer {Customer}", order.OrderId,
-                    order.CustomerName);
                 return RedirectToAction("Summary", new { id = order.OrderId });
             }
         }
 
-        // GET: Order/Summary (Display order summary)
         [HttpGet("Summary")]
         public async Task<IActionResult> Summary(int id)
         {
-            _logger.LogInformation("Order Summary requested for Order ID {id}", id);
-
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == id);
-            if (order == null)
-            {
-                _logger.LogWarning("Order with ID {id} not found", id);
-                return NotFound();
-            }
+            if (order == null) return NotFound();
 
             ViewBag.Products = await _context.Products.ToListAsync();
             return View(order);
         }
 
-        // GET: Order/Track (Show the order tracking form)
         [HttpGet("Track")]
-        public IActionResult Track()
+        public async Task<IActionResult> Track()
         {
-            _logger.LogInformation("Track page accessed");
-            return View();
+            if (!User.IsInRole("Admin"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user != null)
+                {
+                    var orders = await _context.Orders
+                        .Where(o => o.CustomerEmail == user.Email)
+                        .OrderByDescending(o => o.OrderDate)
+                        .ToListAsync();
+
+                    if (orders.Count == 0)
+                        return View("Track");
+
+                    ViewBag.Products = await _context.Products.ToListAsync();
+                    return View("Summary", orders.First());
+                }
+            }
+
+            return View(); // for Admin: allow manual entry
         }
 
-        // POST: Order/Track (Display order summary for the given customer)
         [HttpPost("Track")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Track(string customerName, string customerEmail)
         {
-            _logger.LogInformation("Order tracking submitted for: {Name}, {Email}", customerName, customerEmail);
-
             if (string.IsNullOrEmpty(customerName) || string.IsNullOrEmpty(customerEmail))
             {
-                _logger.LogWarning("Tracking failed: missing name or email");
                 ModelState.AddModelError("", "Name and email are required");
                 return View();
             }
 
             var orders = await _context.Orders
                 .Where(o => o.CustomerName == customerName && o.CustomerEmail == customerEmail)
+                .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
             if (!orders.Any())
             {
-                _logger.LogWarning("No orders found for: {Name}, {Email}", customerName, customerEmail);
-                ModelState.AddModelError("", "No orders found for the given name and email");
+                ModelState.AddModelError("", "No orders found");
                 return View();
             }
 
-            // Display summary for the latest order
-            var latestOrder = orders.OrderByDescending(o => o.OrderDate).FirstOrDefault();
-
             ViewBag.Products = await _context.Products.ToListAsync();
-            _logger.LogInformation("Tracking successful for customer {Name}, showing Order ID {OrderId}", customerName,
-                latestOrder?.OrderId);
-
-            return View("Summary", latestOrder);
+            return View("Summary", orders.First());
         }
     }
 }
