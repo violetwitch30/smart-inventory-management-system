@@ -1,4 +1,4 @@
-// Load products dynamically based on search
+// Load products dynamically
 function loadProducts(searchString) {
     $("#spinner").fadeIn();
 
@@ -19,48 +19,10 @@ function loadProducts(searchString) {
 $(document).ready(function () {
     var currentPath = window.location.pathname.toLowerCase();
 
-    if (currentPath.includes("/productmanagement/product/search")) {
+    if (currentPath.includes("/ProductManagement/Product/Search")) {
         $('#searchBox').on('input', function () {
             var searchString = $(this).val();
             loadProducts(searchString);
-        });
-    }
-
-    if (currentPath.includes("/productmanagement/product/add")) {
-        $('#addProductForm').submit(function (e) {
-            e.preventDefault();
-
-            $("#spinner").fadeIn();
-
-            var formData = {
-                Name: $('#addProductForm input[name="Name"]').val(),
-                Description: $('#addProductForm input[name="Description"]').val(),
-                Price: parseFloat($('#addProductForm input[name="Price"]').val()),
-                Quantity: parseInt($('#addProductForm input[name="Quantity"]').val()),
-                LowStockThreshold: parseInt($('#addProductForm input[name="LowStockThreshold"]').val()),
-                CategoryId: parseInt($('#addProductForm select[name="CategoryId"]').val())
-            };
-
-            $.ajax({
-                url: '/ProductManagement/Product/Add',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(formData),
-                success: function (response) {
-                    if (response.success) {
-                        alert("Product added successfully!");
-                        $('#addProductForm')[0].reset();
-                        loadProducts("");
-                    } else {
-                        alert(response.message);
-                    }
-                    $("#spinner").fadeOut();
-                },
-                error: function (xhr, status, error) {
-                    $("#spinner").fadeOut();
-                    alert("Error adding product: " + xhr.responseText);
-                }
-            });
         });
     }
 });

@@ -63,9 +63,9 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         {
             try
             {
-                _logger.LogInformation("Order creation initiated for customer: {CustomerName} at {Time}", order.CustomerName, DateTime.Now);
-
-                // Ensure the current user details are used for non-admins
+                _logger.LogInformation("Order creation initiated for customer: {CustomerName} at {Time}",
+                    order.CustomerName, DateTime.Now);
+                
                 if (!User.IsInRole("Admin"))
                 {
                     var user = await _userManager.GetUserAsync(User);
@@ -73,34 +73,36 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                     order.CustomerEmail = user.Email;
                 }
 
-                // Validate product and quantity inputs
+                // product and quantity inputs
                 if (productIds == null || quantities == null || productIds.Length != quantities.Length)
                 {
-                    _logger.LogWarning("Invalid product/quantity input for customer: {CustomerName}", order.CustomerName);
+                    _logger.LogWarning("Invalid product/quantity input for customer: {CustomerName}",
+                        order.CustomerName);
                     ModelState.AddModelError("", "Invalid order data.");
                     ViewBag.Products = await _context.Products.ToListAsync();
                     return View(order);
                 }
-
-                // Retrieve the products from the database
+                
                 var products = await _context.Products
                     .Where(p => productIds.Contains(p.ProductId))
                     .ToListAsync();
 
-                // Check stock levels for each product
+                // check stock levels
                 for (int i = 0; i < productIds.Length; i++)
                 {
                     var product = products.FirstOrDefault(p => p.ProductId == productIds[i]);
                     if (product == null || quantities[i] > product.Quantity)
                     {
-                        _logger.LogWarning("Not enough stock for {product}", product.Name);
+                        _logger.LogWarning("Not enough stock for {ProductName}", product?.Name ?? "Unknown");
                         ModelState.AddModelError("", $"Not enough stock for {product?.Name ?? "Unknown"}.");
                         ViewBag.Products = await _context.Products.ToListAsync();
                         return View(order);
                     }
                 }
 
-                // Check if an order already exists for this customer
+                Order processedOrder;
+
+                // if an order already exists for this customer
                 var existingOrder = await _context.Orders.FirstOrDefaultAsync(
                     o => o.CustomerName == order.CustomerName && o.CustomerEmail == order.CustomerEmail);
 
@@ -119,8 +121,7 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                             productIdsList.Add(productIds[i]);
                             quantitiesList.Add(quantities[i]);
                         }
-
-                        // Deduct the purchased quantity from the product's stock
+                        
                         var product = products.First(p => p.ProductId == productIds[i]);
                         product.Quantity -= quantities[i];
                     }
@@ -130,16 +131,16 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                     _context.Orders.Update(existingOrder);
                     await _context.SaveChangesAsync();
 
-                    return RedirectToAction("Summary", new { id = existingOrder.OrderId });
+                    processedOrder = existingOrder;
                 }
                 else
                 {
-                    // Generate new order ID (assuming numeric order IDs)
-                    order.OrderId = await _context.Orders.AnyAsync() ? await _context.Orders.MaxAsync(o => o.OrderId) + 1 : 1;
+                    order.OrderId = await _context.Orders.AnyAsync()
+                        ? await _context.Orders.MaxAsync(o => o.OrderId) + 1
+                        : 1;
                     order.ProductIds = productIds;
                     order.Quantities = quantities;
-
-                    // Deduct stock for each ordered product
+                    
                     foreach (var item in productIds.Select((pid, i) => new { pid, qty = quantities[i] }))
                     {
                         var product = products.First(p => p.ProductId == item.pid);
@@ -149,22 +150,32 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                     _context.Orders.Add(order);
                     await _context.SaveChangesAsync();
 
-                    return RedirectToAction("Summary", new { id = order.OrderId });
+                    processedOrder = order;
+                }
+                
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    // Return a partial view (ensure _OrderConfirmationPartial.cshtml has Layout = null)
+                    return PartialView("_OrderConfirmationPartial", processedOrder);
+                }
+                else
+                {
+                    return RedirectToAction("Summary", new { id = processedOrder.OrderId });
                 }
             }
             catch (DbUpdateException dbEx)
             {
-                // Log the detailed database update error
                 _logger.LogError(dbEx, "Database error while creating order for {CustomerName} at {Time}",
                     order.CustomerName, DateTime.Now);
-                ModelState.AddModelError("", "There was a problem processing your order due to a database error. Please try again later.");
+                ModelState.AddModelError("",
+                    "There was a problem processing your order due to a database error. Please try again later.");
                 ViewBag.Products = await _context.Products.ToListAsync();
                 return View(order);
             }
             catch (Exception ex)
             {
-                // Log any unexpected errors
-                _logger.LogError(ex, "An unexpected error occurred while processing the order for {CustomerName} at {Time}",
+                _logger.LogError(ex,
+                    "An unexpected error occurred while processing the order for {CustomerName} at {Time}",
                     order.CustomerName, DateTime.Now);
                 ModelState.AddModelError("", "An unexpected error occurred. Please try again later.");
                 ViewBag.Products = await _context.Products.ToListAsync();

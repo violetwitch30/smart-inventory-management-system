@@ -1,0 +1,10 @@
+@model SmartInventoryManagementSystem.Areas.ProductManagement.Models.Order
+
+@{
+    Layout = null;
+}
+
+<h2>Order Confirmation</h2>
+
+<p>Thank you for your order, @Model.CustomerName!</p>
+<p>You can track your orders <a asp-action="Track" asp-controller="Order" asp-area="ProductManagement">here</a>.</p>
