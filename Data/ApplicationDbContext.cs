@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new Category { CategoryId = 4, Name = "Food" },
             new Category { CategoryId = 5, Name = "Books" }
         );
+        
         // seed Products table with example data
         modelBuilder.Entity<Product>().HasData(
             // Books
@@ -133,19 +134,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new Order
             {
                 OrderId = 1,
-                OrderDate = new DateTime(2025, 03, 31, 0, 0, 0, DateTimeKind.Utc), // Fixed date
+                OrderDate = new DateTime(2025, 03, 31, 0, 0, 0, DateTimeKind.Utc),
                 CustomerName = "John Doe",
                 CustomerEmail = "john@gmail.com",
-                ProductIds = new int[] { 1, 4, 5 }, // Consider changing List<int> to int[]
+                ProductIds = new int[] { 1, 4, 5 },
                 Quantities = new int[] { 2, 1, 1 }
             },
             new Order
             {
                 OrderId = 2,
-                OrderDate = new DateTime(2025, 03, 30, 0, 0, 0, DateTimeKind.Utc), // Fixed date
+                OrderDate = new DateTime(2025, 03, 30, 0, 0, 0, DateTimeKind.Utc),
                 CustomerName = "Jane Smith",
                 CustomerEmail = "jane@gmail.com",
-                ProductIds = new int[] { 2, 10 }, // Consider changing List<int> to int[]
+                ProductIds = new int[] { 2, 10 },
                 Quantities = new int[] { 1, 1 }
             }
         );

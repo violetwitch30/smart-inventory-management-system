@@ -155,7 +155,6 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
                 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
-                    // Return a partial view (ensure _OrderConfirmationPartial.cshtml has Layout = null)
                     return PartialView("_OrderConfirmationPartial", processedOrder);
                 }
                 else

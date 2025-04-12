@@ -4,7 +4,7 @@ $(document).ready(function () {
 
         // Record the start time
         var startTime = new Date().getTime();
-        var minDisplayTime = 1000; // Minimum spinner display time in milliseconds (1 second)
+        var minDisplayTime = 1000;
 
         $("#spinner").fadeIn();
 
@@ -20,7 +20,7 @@ $(document).ready(function () {
             },
             complete: function() {
                 var elapsedTime = new Date().getTime() - startTime;
-                var delay = Math.max(minDisplayTime - elapsedTime, 0); // Ensure non-negative delay
+                var delay = Math.max(minDisplayTime - elapsedTime, 0);
                 setTimeout(function() {
                     $("#spinner").fadeOut();
                 }, delay);

@@ -8,7 +8,6 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {
     [Area("ProductManagement")]
     [Route("[area]/[controller]")]
-    //[Authorize]
     public class ProductController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -200,7 +199,6 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 
         [HttpGet("Delete/{id}")]
         [Authorize(Roles = "Admin")]
-        //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -223,7 +221,6 @@ namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
         [HttpPost("Delete/{id}"), ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        //[Authorize(Roles = "SuperAdmin, Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             try
