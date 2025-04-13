@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using SmartInventoryManagementSystem.Areas.ProjectManagement.Models;
 
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers

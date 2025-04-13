@@ -3,6 +3,7 @@ using SmartInventoryManagementSystem.Areas.ProductManagement.Models;
 using SmartInventoryManagementSystem.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace SmartInventoryManagementSystem.Areas.ProductManagement.Controllers
 {

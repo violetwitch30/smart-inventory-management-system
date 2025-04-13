@@ -1,7 +1,12 @@
+using Microsoft.AspNetCore.Builder;
 using SmartInventoryManagementSystem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using SmartInventoryManagementSystem.Areas.ProjectManagement.Models;
 using SmartInventoryManagementSystem.Services;
